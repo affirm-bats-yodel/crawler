@@ -15,7 +15,7 @@ import (
 var requestURL *string = flag.String("url", "", "a url to request")
 
 func TestNewHandler(t *testing.T) {
-	h, err := chromedp.NewHandler()
+	h, err := chromedp.NewHandler(true)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -32,7 +32,7 @@ func TestHandler_Get(t *testing.T) {
 		return
 	}
 
-	h, err := chromedp.NewHandler()
+	h, err := chromedp.NewHandler(false)
 	if !assert.NoError(t, err) {
 		return
 	}
