@@ -11,13 +11,18 @@ import (
 )
 
 // NewHandler Create a new Playwright Handler
-func NewHandler() (*Handler, error) {
-	return &Handler{}, nil
+func NewHandler(headless bool) (*Handler, error) {
+	return &Handler{
+		Headless: headless,
+	}, nil
 }
 
 // Handler Playwright Handler to support RIA
 // (Rich Internet Application)
-type Handler struct{}
+type Handler struct {
+	// Headless Turn Headless On and Off
+	Headless bool
+}
 
 // Get implements request.Request.
 //
@@ -25,7 +30,14 @@ type Handler struct{}
 // except ContentLength and Body
 func (h *Handler) Get(ctx context.Context, url string) (*request.Response, error) {
 	var body *strings.Reader
-	ctx, cancel := chromedp.NewContext(ctx)
+
+	ctx, cancel := chromedp.NewExecAllocator(ctx, append(
+		chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", h.Headless),
+	)...)
+	defer cancel()
+
+	ctx, cancel = chromedp.NewContext(ctx)
 	defer cancel()
 
 	err := chromedp.Run(ctx,
