@@ -9,6 +9,26 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+// Install Browser and Driver
+func Install(bt BrowserType) error {
+	var bn string
+
+	switch bt {
+	case Chromium:
+		bn = "chromium"
+	case Firefox:
+		bn = "firefox"
+	case Webkit:
+		bn = "webkit"
+	default:
+		return fmt.Errorf("error: undefined browser type: %d", bt)
+	}
+
+	return playwright.Install(&playwright.RunOptions{
+		Browsers: []string{bn},
+	})
+}
+
 // NewHandler Create a new Playwright Handler
 func NewHandler(bt BrowserType) (*Handler, error) {
 	var br playwright.Browser
