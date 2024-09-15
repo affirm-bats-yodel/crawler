@@ -15,6 +15,7 @@
           nativeBuildInputs = with pkgs; [
             go
             golangci-lint
+            marksman
           ];
         };
       }
