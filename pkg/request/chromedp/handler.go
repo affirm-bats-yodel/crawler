@@ -2,6 +2,7 @@ package chromedp
 
 import (
 	"context"
+	"errors"
 	"io"
 	"strings"
 
@@ -17,11 +18,35 @@ func NewHandler(headless bool) (*Handler, error) {
 	}, nil
 }
 
-// Handler Playwright Handler to support RIA
+// NewRemoteHandler Create a new Remote Allocator based Handler
+func NewRemoteHandler(remoteAllocatorAddr string) (*Handler, error) {
+	s := strings.TrimSpace(remoteAllocatorAddr)
+	if len(s) == 0 {
+		return nil, errors.New("error: empty remoteAllocatorAddr")
+	}
+	return &Handler{
+		UseRemoteAllocator:  true,
+		RemoteAllocatorAddr: s,
+	}, nil
+}
+
+// Handler Chromedp Handler to support RIA
 // (Rich Internet Application)
+//
+// Chromedp handler require to install chromium
+// or google chrome
+//
+// https://github.com/chromedp/chromedp
 type Handler struct {
 	// Headless Turn Headless On and Off
 	Headless bool
+	// UseRemoteAllocator Use Remote allocator
+	// rather than execute chromium
+	UseRemoteAllocator bool
+	// RemoteAllocatorAddr Remote Allocator Address
+	//
+	// Required if UseRemoteAllocator is set to true
+	RemoteAllocatorAddr string
 }
 
 // Get implements request.Request.
@@ -31,10 +56,7 @@ type Handler struct {
 func (h *Handler) Get(ctx context.Context, url string) (*request.Response, error) {
 	var body *strings.Reader
 
-	ctx, cancel := chromedp.NewExecAllocator(ctx, append(
-		chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.Flag("headless", h.Headless),
-	)...)
+	ctx, cancel := h.GetAllocator(ctx)
 	defer cancel()
 
 	ctx, cancel = chromedp.NewContext(ctx)
@@ -69,6 +91,19 @@ func (h *Handler) Get(ctx context.Context, url string) (*request.Response, error
 // Shutdown implements request.Request.
 func (h *Handler) Shutdown(_ context.Context) error {
 	return nil
+}
+
+// GetAllocator Generate Allocator by UseRemoteAllocator is true or not
+//
+// NOTE: It does not check RemoteAllocatorAddr is Empty or not, use with care
+func (h *Handler) GetAllocator(ctx context.Context) (context.Context, context.CancelFunc) {
+	if h.UseRemoteAllocator {
+		return chromedp.NewRemoteAllocator(ctx, h.RemoteAllocatorAddr)
+	}
+	return chromedp.NewExecAllocator(ctx, append(
+		chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.Flag("headless", h.Headless),
+	)...)
 }
 
 var _ request.Request = (*Handler)(nil)
