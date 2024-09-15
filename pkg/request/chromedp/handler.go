@@ -2,93 +2,61 @@ package chromedp
 
 import (
 	"context"
-	"errors"
-	"fmt"
+	"io"
+	"strings"
 
 	"github.com/affirm-bats-yodel/crawler/pkg/request"
-	"github.com/playwright-community/playwright-go"
+	"github.com/chromedp/cdproto/dom"
+	"github.com/chromedp/chromedp"
 )
 
-// Install Browser and Driver
-func Install(bt BrowserType) error {
-	var bn string
-
-	switch bt {
-	case Chromium:
-		bn = "chromium"
-	case Firefox:
-		bn = "firefox"
-	case Webkit:
-		bn = "webkit"
-	default:
-		return fmt.Errorf("error: undefined browser type: %d", bt)
-	}
-
-	return playwright.Install(&playwright.RunOptions{
-		Browsers: []string{bn},
-	})
-}
-
 // NewHandler Create a new Playwright Handler
-func NewHandler(bt BrowserType) (*Handler, error) {
-	var br playwright.Browser
-	pw, err := playwright.Run()
-	if err != nil {
-		return nil, err
-	}
-	switch bt {
-	case Chromium:
-		br, err = pw.Chromium.Launch()
-	case Firefox:
-		br, err = pw.Firefox.Launch()
-	case Webkit:
-		br, err = pw.WebKit.Launch()
-	default:
-		err = fmt.Errorf("error: undefined browser type: %d", bt)
-	}
-	return &Handler{
-		Playwright: pw,
-		Browser:    br,
-	}, err
+func NewHandler() (*Handler, error) {
+	return &Handler{}, nil
 }
 
 // Handler Playwright Handler to support RIA
 // (Rich Internet Application)
-type Handler struct {
-	Playwright *playwright.Playwright
-	Browser    playwright.Browser
-}
+type Handler struct{}
 
 // Get implements request.Request.
+//
+// chromedp handler does not return any additonal data
+// except ContentLength and Body
 func (h *Handler) Get(ctx context.Context, url string) (*request.Response, error) {
-	panic("unimplemented")
+	var body *strings.Reader
+	ctx, cancel := chromedp.NewContext(ctx)
+	defer cancel()
+
+	err := chromedp.Run(ctx,
+		chromedp.Navigate(url),
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			node, err := dom.GetDocument().Do(ctx)
+			if err != nil {
+				return err
+			}
+			res, err := dom.GetOuterHTML().WithNodeID(node.NodeID).Do(ctx)
+			if err != nil {
+				return err
+			}
+			body = strings.NewReader(res)
+			return nil
+		}),
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &request.Response{
+		ContentLength: body.Size(),
+		Body:          io.NopCloser(body),
+	}, nil
 }
 
 // Shutdown implements request.Request.
-func (h *Handler) Shutdown(ctx context.Context) error {
-	var allErrs []error
-	// Stop the Browser if defined
-	if h.Browser != nil {
-		if err := h.Browser.Close(); err != nil {
-			allErrs = append(allErrs, err)
-		}
-	}
-	// then stop playwright session
-	if err := h.Playwright.Stop(); err != nil {
-		allErrs = append(allErrs, err)
-	}
-	if len(allErrs) > 0 {
-		return errors.Join(allErrs...)
-	}
+func (h *Handler) Shutdown(_ context.Context) error {
 	return nil
 }
 
 var _ request.Request = (*Handler)(nil)
-
-type BrowserType int
-
-const (
-	Chromium BrowserType = iota
-	Firefox
-	Webkit
-)
