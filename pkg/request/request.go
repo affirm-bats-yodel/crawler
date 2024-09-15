@@ -2,7 +2,9 @@ package request
 
 import (
 	"context"
+	"errors"
 	"io"
+	"mime"
 	"net/http"
 )
 
@@ -27,7 +29,29 @@ type Response struct {
 	Body io.ReadCloser
 }
 
-// GetContentType Get "Content-Type" from Header
-func (r *Response) GetContentType() string {
-	return r.Header.Get("Content-Type")
+// ContentType a Wrapper from mime.ParseMediaType
+// result
+type ContentType struct {
+	MediaType string
+	Params    map[string]string
+}
+
+// ErrEmptyContentType Error when "Content-Type" does not exist
+// on response header.
+var ErrEmptyContentType = errors.New("error: empty Content-Type on Header")
+
+// GetContentType Parse "Content-Type" from Header
+func (r *Response) GetContentType() (*ContentType, error) {
+	ct := r.Header.Get("Content-Type")
+	if ct == "" {
+		return nil, ErrEmptyContentType
+	}
+	mediaType, params, err := mime.ParseMediaType(ct)
+	if err != nil {
+		return nil, err
+	}
+	return &ContentType{
+		MediaType: mediaType,
+		Params:    params,
+	}, nil
 }
