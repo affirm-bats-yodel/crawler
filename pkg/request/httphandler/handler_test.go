@@ -39,6 +39,7 @@ func TestHandler_Get(t *testing.T) {
 		assert.Equal(t, "text/html", ct.MediaType)
 	}
 	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NotEmpty(t, res.ContentLength, "content-length should greator than 0")
 	_, err = io.Copy(&buf, res.Body)
 	if assert.NoError(t, err) {
 		t.Logf("body: %s", buf.Bytes())
