@@ -1,21 +1,15 @@
-package playwright_test
+package chromedp_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/affirm-bats-yodel/crawler/pkg/request/playwright"
+	"github.com/affirm-bats-yodel/crawler/pkg/request/chromedp"
 )
 
 func TestNewHandler(t *testing.T) {
-	t.Logf("install browser")
-	if err := playwright.Install(playwright.Firefox); err != nil {
-		t.Error(err)
-		return
-	}
-
-	h, err := playwright.NewHandler(playwright.Firefox)
+	h, err := chromedp.NewHandler()
 	if err != nil && h == nil {
 		t.Error(err)
 		return
