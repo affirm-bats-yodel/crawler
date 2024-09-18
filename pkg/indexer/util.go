@@ -1,6 +1,9 @@
 package indexer
 
-import "net/url"
+import (
+	"context"
+	"net/url"
+)
 
 // IsObjHashValid Check objHash is valid
 //
@@ -30,4 +33,9 @@ func IsValidURI(uri string) bool {
 	default:
 		return false
 	}
+}
+
+// IsContextCancelled Check given context is cancelled
+func IsContextCancelled(ctx context.Context) bool {
+	return ctx.Err() != nil
 }
