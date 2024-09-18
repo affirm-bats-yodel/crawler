@@ -22,4 +22,6 @@ type Indexer interface {
 	//
 	// - []string: List of Object Hashes
 	GetByURI(ctx context.Context, uri string) ([]string, error)
+	// Close Disconnect (or Close) DB
+	Close(ctx context.Context) error
 }
